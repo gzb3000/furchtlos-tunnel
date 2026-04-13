@@ -4,75 +4,44 @@ const port = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 
-// --- 节点配置区 ---
-// Ben，这里记得填入你那 7 个文件里提到的 UUID
-const USER_CONFIG = {
-    uuid: '这里替换成你的UUID', 
-    host: 'harvin.top',
-    path: '/?ed=2560'
-};
+// --- 配置区 ---
+const UUID = '这里填入你之前的UUID'; // 填入你的UUID
+const DOMAIN = 'harvin.top';
 
-// 模拟原先 7 个文件里的常用 Cloudflare 节点地址
-const cfNodes = [
-    'www.visa.com',
-    'www.csgo.com',
-    'www.digitalocean.com',
-    'www.itunes.com',
-    'www.garmin.com',
-    'www.who.int',
-    'www.fbi.gov'
+const nodes = [
+    { name: '美国-Visa', addr: 'www.visa.com' },
+    { name: '美国-CSGO', addr: 'www.csgo.com' },
+    { name: '全球-Garmin', addr: 'www.garmin.com' },
+    { name: '美国-FBI', addr: 'www.fbi.gov' }
 ];
 
-function generateVless() {
-    return cfNodes.map(ip => {
-        return `vless://${USER_CONFIG.uuid}@${ip}:443?encryption=none&security=tls&sni=${USER_CONFIG.host}&fp=random&type=ws&host=${USER_CONFIG.host}&path=${encodeURIComponent(USER_CONFIG.path)}#CF-${ip}`;
-    }).join('\n');
-}
+// --- 路由 ---
+app.get('/', (req, res) => res.send('<h1>Hello World!</h1>'));
 
-// 1. 首页
-app.get('/', (req, res) => {
-    res.send('<h1>Hello World!</h1><p>站点建设中，管理后台请访问 /admin</p>');
-});
-
-// 2. 登录页面
 app.get('/admin', (req, res) => {
-    res.send(`
-        <div style="text-align:center; margin-top:100px; font-family:sans-serif;">
-            <h2>管理后台登录</h2>
-            <form action="/login" method="POST">
-                <input type="password" name="pwd" placeholder="请输入密码" style="padding:8px;">
-                <button type="submit" style="padding:8px 15px; cursor:pointer;">进入</button>
-            </form>
-        </div>
-    `);
+    res.send('<form action="/login" method="POST">密码: <input type="password" name="pwd"><button>登录</button></form>');
 });
 
-// 3. 登录处理
 app.post('/login', (req, res) => {
     if (req.body.pwd === '12345678') {
-        res.send(`
-            <div style="padding:20px; font-family:sans-serif;">
-                <h2>登录成功！</h2>
-                <p><strong>你的专属订阅链接：</strong></p>
-                <code style="background:#f4f4f4; padding:10px; display:block;">https://harvin.top/sub</code>
-                <br>
-                <p>直接点击查看内容：<a href="/sub" target="_blank">点击打开</a></p>
-                <hr>
-                <a href="/">回到首页</a>
-            </div>
-        `);
-    } else {
-        res.send('密码错误！<a href="/admin">重新输入</a>');
-    }
+        res.send(`<h1>成功</h1><p>Clash链接: <code>https://${DOMAIN}/clash</code></p><p>通用链接: <code>https://${DOMAIN}/sub</code></p>`);
+    } else { res.send('错误'); }
 });
 
-// 4. 订阅内容输出
+app.get('/clash', (req, res) => {
+    let y = `port: 7890\nmode: rule\nproxies:\n`;
+    nodes.forEach(n => {
+        y += `  - {name: "${n.name}", type: vless, server: ${n.addr}, port: 443, uuid: ${UUID}, tls: true, sni: ${DOMAIN}, network: ws, ws-opts: {path: "/?ed=2560", headers: {Host: ${DOMAIN}}}}\n`;
+    });
+    y += `proxy-groups:\n  - name: "🚀 自动选择"\n    type: url-test\n    url: http://www.gstatic.com/generate_204\n    interval: 300\n    proxies:\n`;
+    nodes.forEach(n => { y += `      - "${n.name}"\n`; });
+    res.setHeader('Content-Type', 'text/yaml');
+    res.send(y);
+});
+
 app.get('/sub', (req, res) => {
-    const content = generateVless();
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.send(Buffer.from(content).toString('base64'));
+    const s = nodes.map(n => `vless://${UUID}@${n.addr}:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F%3Fed%3D2560#${encodeURIComponent(n.name)}`).join('\n');
+    res.send(Buffer.from(s).toString('base64'));
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+app.listen(port);
