@@ -1,44 +1,80 @@
 const express = require('express');
-const { WebSocketServer } = require('ws');
-const net = require('net');
-const fs = require('fs');
-const path = require('path');
-
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 3000;
 
-// 1. 加载你的个性化配置
-let config;
-try {
-    config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-} catch (e) {
-    config = { UUID: "ad5f1610-6393-41a4-9e32-a548d8888888", PROXY_IP: "cdn.cloudflare.com" };
+app.use(express.urlencoded({ extended: true }));
+
+// --- 节点配置区 ---
+// 这里你可以填入你自己的 UUID 和域名
+const USER_CONFIG = {
+    uuid: '这里替换成你之前的UUID', 
+    host: 'harvin.top',
+    path: '/?ed=2560'
+};
+
+// 模拟原先 7 个文件里的 Cloudflare 节点地址（示例）
+const cfNodes = [
+    'www.visa.com',
+    'www.csgo.com',
+    'www.digitalocean.com',
+    'www.itunes.com',
+    'www.garmin.com',
+    'www.who.int',
+    'www.fbi.gov'
+];
+
+// 生成 VLESS 链接的函数
+function generateVless() {
+    return cfNodes.map(ip => {
+        return `vless://${USER_CONFIG.uuid}@${ip}:443?encryption=none&security=tls&sni=${USER_CONFIG.host}&fp=random&type=ws&host=${USER_CONFIG.host}&path=${encodeURIComponent(USER_CONFIG.path)}#CF-${ip}`;
+    }).join('\n');
 }
 
-// 2. 静态页面服务：让你的服务器看起来像个正常的网页（伪装层）
-app.use(express.static('public'));
-
-// 3. 启动 HTTP 服务
-const server = app.listen(port, () => {
-    console.log(`-----------------------------------------`);
-    console.log(`🚀 EdgeTunnel Docker 版启动成功！`);
-    console.log(`🌍 监听端口: ${port}`);
-    console.log(`🔑 当前 UUID: ${config.UUID}`);
-    console.log(`-----------------------------------------`);
+// 1. 首页
+app.get('/', (req, res) => {
+    res.send('<h1>Hello World!</h1><p>站点建设中，节点服务请访问后台。</p>');
 });
 
-// 4. WebSocket 处理：这是核心的隧道逻辑
-// 注意：真正的 VLESS 协议解析逻辑很长，
-// 建议你在部署后参考 Github 的 vless-node 项目进行深度定制。
-const wss = new WebSocketServer({ server });
+// 2. 登录页面
+app.get('/admin', (req, res) => {
+    res.send(`
+        <div style="text-align:center; margin-top:100px; font-family:sans-serif;">
+            <h2>管理后台登录</h2>
+            <form action="/login" method="POST">
+                <input type="password" name="pwd" placeholder="请输入密码" style="padding:8px;">
+                <button type="submit" style="padding:8px 15px; cursor:pointer;">进入</button>
+            </form>
+        </div>
+    `);
+});
 
-wss.on('connection', (ws, req) => {
-    console.log(`[${new Date().toLocaleTimeString()}] 收到新的隧道连接`);
+// 3. 登录处理
+app.post('/login', (req, res) => {
+    if (req.body.pwd === '12345678') {
+        res.send(`
+            <div style="padding:20px; font-family:sans-serif;">
+                <h2>登录成功！</h2>
+                <p><strong>你的专属订阅链接：</strong></p>
+                <input type="text" value="https://harvin.top/sub" id="subUrl" style="width:300px; padding:5px;">
+                <button onclick="navigator.clipboard.writeText(document.getElementById('subUrl').value)">复制链接</button>
+                <br><br>
+                <p>直接点击查看内容：<a href="/sub" target="_blank">点击打开</a></p>
+                <hr>
+                <a href="/">回到首页</a>
+            </div>
+        `);
+    } else {
+        res.send('密码错误！<a href="/admin">重新输入</a>');
+    }
+});
 
-    ws.on('message', (chunk) => {
-        // 这里会处理来自客户端的加密流量
-        // 并通过 net.connect() 转发到目标地址
-    });
+// 4. 订阅内容输出（Base64 格式，客户端可直接识别）
+app.get('/sub', (req, res) => {
+    const content = generateVless();
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(Buffer.from(content).toString('base64'));
+});
 
-    ws.on('error', (err) => console.error('连接错误:', err));
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
