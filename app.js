@@ -5,14 +5,14 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 
 // --- 节点配置区 ---
-// 这里你可以填入你自己的 UUID 和域名
+// Ben，这里记得填入你那 7 个文件里提到的 UUID
 const USER_CONFIG = {
-    uuid: '这里替换成你之前的UUID', 
+    uuid: '这里替换成你的UUID', 
     host: 'harvin.top',
     path: '/?ed=2560'
 };
 
-// 模拟原先 7 个文件里的 Cloudflare 节点地址（示例）
+// 模拟原先 7 个文件里的常用 Cloudflare 节点地址
 const cfNodes = [
     'www.visa.com',
     'www.csgo.com',
@@ -23,7 +23,6 @@ const cfNodes = [
     'www.fbi.gov'
 ];
 
-// 生成 VLESS 链接的函数
 function generateVless() {
     return cfNodes.map(ip => {
         return `vless://${USER_CONFIG.uuid}@${ip}:443?encryption=none&security=tls&sni=${USER_CONFIG.host}&fp=random&type=ws&host=${USER_CONFIG.host}&path=${encodeURIComponent(USER_CONFIG.path)}#CF-${ip}`;
@@ -32,7 +31,7 @@ function generateVless() {
 
 // 1. 首页
 app.get('/', (req, res) => {
-    res.send('<h1>Hello World!</h1><p>站点建设中，节点服务请访问后台。</p>');
+    res.send('<h1>Hello World!</h1><p>站点建设中，管理后台请访问 /admin</p>');
 });
 
 // 2. 登录页面
@@ -55,9 +54,8 @@ app.post('/login', (req, res) => {
             <div style="padding:20px; font-family:sans-serif;">
                 <h2>登录成功！</h2>
                 <p><strong>你的专属订阅链接：</strong></p>
-                <input type="text" value="https://harvin.top/sub" id="subUrl" style="width:300px; padding:5px;">
-                <button onclick="navigator.clipboard.writeText(document.getElementById('subUrl').value)">复制链接</button>
-                <br><br>
+                <code style="background:#f4f4f4; padding:10px; display:block;">https://harvin.top/sub</code>
+                <br>
                 <p>直接点击查看内容：<a href="/sub" target="_blank">点击打开</a></p>
                 <hr>
                 <a href="/">回到首页</a>
@@ -68,7 +66,7 @@ app.post('/login', (req, res) => {
     }
 });
 
-// 4. 订阅内容输出（Base64 格式，客户端可直接识别）
+// 4. 订阅内容输出
 app.get('/sub', (req, res) => {
     const content = generateVless();
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
