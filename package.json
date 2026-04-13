@@ -1,7 +1,6 @@
 {
-  "name": "harvin-sub-server",
+  "name": "harvin-app",
   "version": "1.0.0",
-  "description": "Ben's Sub Server",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
