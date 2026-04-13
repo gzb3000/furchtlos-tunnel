@@ -1,0 +1,17 @@
+{
+  "name": "edgetunnel-docker",
+  "version": "1.0.0",
+  "description": "基于 Node.js 的边缘隧道 Docker 版",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0",
+    "uuid": "^9.0.0",
+    "undici": "^5.22.1"
+  },
+  "author": "Ben",
+  "license": "GPL-2.0"
+}

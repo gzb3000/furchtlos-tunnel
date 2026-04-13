@@ -1,0 +1,13 @@
+version: '3'
+services:
+  edgetunnel:
+    build: .
+    container_name: edgetunnel-server
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./config.json:/app/config.json
+      - ./public:/app/public
